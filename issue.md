@@ -1,0 +1,4 @@
+- [x] Incorrect record audio length
+  - Found that using pw-record solve the problem, but it only capture correct audio when run in terminal but not rust context
+  - Running it in shell context (eg. `bash -c '...'`) work somehow?
+- [ ] Clicking "Refresh" button break layout

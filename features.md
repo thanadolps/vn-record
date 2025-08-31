@@ -1,0 +1,4 @@
+- [ ] More feedback on record / copy / etc..
+  - Toast notification using [iced_toasts](https://docs.rs/iced_toasts/latest/iced_toasts/)
+  - Sound
+  - System notification?

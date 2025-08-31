@@ -6,6 +6,7 @@ edition = "2024"
 
 [dependencies]
 dirs = "6.0.0"
+duct = "1.1.0"
 global-hotkey = "0.7.0"
 iced = { version = "0.13.1", features = ["image", "tokio"] }
 open = "5.3.2"

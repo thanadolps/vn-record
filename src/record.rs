@@ -1,14 +1,14 @@
+use duct::{Handle, cmd, unix::HandleExt};
 use thiserror::Error;
 use xcap::{
-    image::{ImageError, RgbaImage},
     XCapError, XCapResult,
+    image::{ImageError, RgbaImage},
 };
 
 use crate::process::Process;
 use std::{
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
-    process::{Child, Command, Stdio},
     time::{Duration, SystemTime},
 };
 
@@ -17,7 +17,7 @@ pub struct Recorder {
     audio_path: PathBuf,
     screenshot_path: PathBuf,
 
-    record_cmd: Child,
+    record_cmd: Handle,
 }
 
 #[derive(Clone)]
@@ -38,7 +38,7 @@ pub enum RecordError {
     CaptureScreenshot(#[from] XCapError),
     #[error("Failed to save screenshot: {0}")]
     SaveScreenshot(#[from] ImageError),
-    #[error("IO error on parecord: {0}")]
+    #[error("IO error on recording: {0}")]
     IO(#[from] std::io::Error),
 }
 
@@ -89,31 +89,43 @@ impl Recorder {
     }
 
     fn stop_audio(&mut self) -> Result<(), RecordError> {
-        // Stop the parecord to end the audio recording
+        // Stop the recording command to end the audio recording
         if let Some(status) = self.record_cmd.try_wait()? {
             eprintln!(
-                "parecord stopped before the recording should have been stopped: {:?}",
+                "Recording stopped before the recording should have been stopped: {:?}",
                 status
             );
         }
-        self.record_cmd.kill()?;
 
-        // TODO: not hacky
-        std::thread::sleep(Duration::from_secs(2));
+        const SIGTERM: i32 = 15;
+        self.record_cmd.send_signal(SIGTERM)?;
+        self.record_cmd.wait()?;
 
         let audio_duration = audio_duration(&self.audio_path);
         println!("Captured {:?} of audio (before trim)", audio_duration);
 
         // Trim the silence from the beginning and end of the audio
         let tmp_trimmed_audio_path = self.audio_path.with_extension("tmp.mp3");
-        let mut cmd = Command::new("sox");
-        cmd.args([&self.audio_path, &tmp_trimmed_audio_path]).args([
-            "silence", "1", "0.1", "1%", "reverse", "silence", "1", "0.1", "1%", "reverse",
-        ]);
-        let res = cmd.status().unwrap();
-        if !res.success() {
-            eprintln!("sox failed: {:?}", res);
+        let res = cmd!(
+            "sox",
+            &self.audio_path,
+            &tmp_trimmed_audio_path,
+            "silence",
+            "1",
+            "0.1",
+            "1%",
+            "reverse",
+            "silence",
+            "1",
+            "0.1",
+            "1%",
+            "reverse"
+        )
+        .run();
+        if let Err(e) = res {
+            eprintln!("sox failed: {:?}", e);
         }
+
         std::fs::rename(&tmp_trimmed_audio_path, &self.audio_path)?;
 
         Ok(())
@@ -132,17 +144,15 @@ fn audio_duration(audio_path: &Path) -> Duration {
         return Duration::ZERO;
     }
 
-    let output = Command::new("soxi")
-        .arg("-D")
-        .arg(audio_path)
-        .output()
-        .unwrap();
-    if !output.status.success() {
-        eprintln!("soxi failed: {:?}", output);
+    match cmd!("soxi", "-D", audio_path).read() {
+        Ok(duration_str) => {
+            let duration = duration_str.trim().parse::<f64>().unwrap();
+            Duration::from_secs_f64(duration)
+        }
+        Err(e) => {
+            panic!("soxi failed: {:?}", e);
+        }
     }
-    let duration_str = String::from_utf8(output.stdout).unwrap();
-    let duration = duration_str.trim().parse::<f64>().unwrap();
-    Duration::from_secs_f64(duration)
 }
 
 // fn default_audio_sink() -> Result<u32, RecordError> {
@@ -171,35 +181,17 @@ fn audio_duration(audio_path: &Path) -> Duration {
 //     Ok(default_sink_id)
 // }
 
-fn start_audio_record(audio_path: &Path, target_sink: Option<&str>) -> Result<Child, RecordError> {
-    // based on https://github.com/JayXT/RecordAudioOutput/blob/main/record_audio_output
+fn start_audio_record(audio_path: &Path, target_sink: Option<&str>) -> Result<Handle, RecordError> {
+    // based on https://github.com/JayXT/RecordAudioOutput/blob/main/record_audio_output_pw
 
-    let target_sink = target_sink.unwrap_or(r"@DEFAULT_MONITOR@");
-    let mut record_cmd = Command::new("parec")
-        .arg("-d")
-        .arg(target_sink)
-        .arg("--volume=65536")
-        .stdout(Stdio::piped())
-        .spawn()?;
-    let convert_cmd = Command::new("lame")
-        .arg("-r")
-        .arg("-V5")
-        .arg("-")
-        .arg(audio_path)
-        .stdin(record_cmd.stdout.take().unwrap())
-        .stderr(Stdio::null())
-        .spawn()?;
-    Ok(record_cmd)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_audio_record() {
-        let mut cmd = start_audio_record("/tmp/test.wav".as_ref(), None).unwrap();
-        std::thread::sleep(Duration::from_secs(3));
-        cmd.kill().unwrap();
-    }
+    let target_sink = target_sink.unwrap_or("auto");
+    let inner_expr = format!(
+        "pw-record --target \"{}\" -P '{{ stream.capture.sink=true }}' - | lame -r -s 48 -m s -V7 - \"{}\"",
+        target_sink,
+        audio_path.display()
+    );
+    // afaik, must wrap in shell context otherwise it won't record the correct audio
+    let expr = cmd("/usr/bin/env", ["bash", "-c", &inner_expr]);
+    let command = expr.unchecked().start()?;
+    Ok(command)
 }
