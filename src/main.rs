@@ -5,24 +5,21 @@ mod record;
 
 use std::{path::PathBuf, sync::LazyLock, time::Duration};
 
-use global_hotkey::{
-    hotkey::{Code, HotKey, Modifiers},
-    GlobalHotKeyEvent, GlobalHotKeyManager,
-};
+use global_hotkey::hotkey::{Code, HotKey, Modifiers};
 use hotkey::{GHKMessage, GHKService};
 use iced::{
-    font::{self, Weight},
-    futures::{SinkExt, Stream, StreamExt},
-    keyboard, stream, theme,
-    widget::{
-        button, center, column, container, image, pick_list, text, value, Column, Container, Row,
-    },
     Alignment::{Center, End, Start},
     Element, Font,
     Length::Fill,
     Pixels, Subscription, Task, Theme,
+    font::{self, Weight},
+    futures::{SinkExt, Stream, StreamExt},
+    keyboard, stream, theme,
+    widget::{
+        Column, Container, Row, button, center, column, container, image, pick_list, text, value,
+    },
 };
-use process::{processes, Process};
+use process::{Process, processes};
 use record::{RecordConfig, RecordedData, Recorder};
 
 static GHK: LazyLock<GHKService> = LazyLock::new(|| {
@@ -58,7 +55,7 @@ enum Message {
 
 enum Page {
     Main,
-    Setting,
+    Setting, // TODO
 }
 
 struct RecordSession {

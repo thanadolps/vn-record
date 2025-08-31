@@ -2,16 +2,16 @@ cargo-features = ["codegen-backend"]
 [package]
 name = "vn_record"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-dirs = "5.0.1"
-global-hotkey = "0.6.0"
-iced = {git = "https://github.com/iced-rs/iced", rev = "555ee3e9c66010c9a90c3ef55d61fbffd48e669d", features = ["image", "tokio"]}
-open = "5.3.0"
-thiserror = "1.0.63"
-tokio = { version = "1.40.0", default-features = false, features = ["time"] }
-xcap = "0.0.13"
+dirs = "6.0.0"
+global-hotkey = "0.7.0"
+iced = { version = "0.13.1", features = ["image", "tokio"] }
+open = "5.3.2"
+thiserror = "2.0.16"
+tokio = { version = "1.47.1", default-features = false, features = ["time"] }
+xcap = "0.7.0"
 
 [profile.dev]
 debug = 0

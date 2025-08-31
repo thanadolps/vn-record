@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use xcap::{image::RgbaImage, XCapResult};
+use xcap::{XCapResult, image::RgbaImage};
 
 type ProcessID = u32;
 
@@ -36,15 +36,16 @@ pub fn processes() -> Result<Vec<Process>, String> {
 }
 
 fn process_from_window(window: xcap::Window) -> Process {
-    let name = if window.title() != "" {
-        format!("{} - {}", window.app_name(), window.title())
-    } else {
-        window.app_name().to_owned()
+    let id = window.id().unwrap();
+
+    let title = window.title();
+    let app_name = window.app_name();
+    let name = match (title, app_name) {
+        (Ok(title), Ok(app_name)) => format!("{} - {}", app_name, title),
+        (Ok(title), Err(_)) => title,
+        (Err(_), Ok(app_name)) => app_name,
+        (Err(_), Err(_)) => "Unknown".to_string(),
     };
 
-    Process {
-        id: window.id(),
-        name,
-        window,
-    }
+    Process { id, name, window }
 }
