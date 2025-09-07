@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use global_hotkey::{hotkey::HotKey, GlobalHotKeyEvent, GlobalHotKeyManager, HotKeyState};
+use global_hotkey::{GlobalHotKeyEvent, GlobalHotKeyManager, HotKeyState, hotkey::HotKey};
 use iced::{
     futures::{SinkExt, Stream, StreamExt},
     stream,
@@ -9,6 +9,7 @@ use iced::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GHKMessage {
     Record,
+    CopyLastRecord,
     CopyLastScreenshot,
     CopyLastAudio,
 }

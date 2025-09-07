@@ -30,10 +30,14 @@ static GHK: LazyLock<GHKService> = LazyLock::new(|| {
     );
     ghk.bind(
         HotKey::new(Some(Modifiers::SHIFT), Code::Digit1),
-        GHKMessage::CopyLastScreenshot,
+        GHKMessage::CopyLastRecord,
     );
     ghk.bind(
         HotKey::new(Some(Modifiers::SHIFT), Code::Digit2),
+        GHKMessage::CopyLastScreenshot,
+    );
+    ghk.bind(
+        HotKey::new(Some(Modifiers::SHIFT), Code::Digit3),
         GHKMessage::CopyLastAudio,
     );
     ghk
@@ -48,6 +52,7 @@ enum Message {
     StopRecord,
     ToggleRecord,
     Tick(std::time::Instant),
+    CopyLastRecord,
     CopyLastScreenshot,
     CopyLastAudio,
     OpenOutDir,
@@ -196,23 +201,16 @@ impl VNRecord {
             .on_press(Message::OpenOutDir)
             .into(),
         )];
-        if let Some(r_key) = GHK.get_key(GHKMessage::Record).get(0) {
-            elems.push((
-                "Start/Stop Record",
-                value(r_key).size(10).style(text::secondary).into(),
-            ));
-        }
-        if let Some(cls_key) = GHK.get_key(GHKMessage::CopyLastScreenshot).get(0) {
-            elems.push((
-                "Copy Last Screenshot",
-                value(cls_key).size(10).style(text::secondary).into(),
-            ));
-        }
-        if let Some(cla_key) = GHK.get_key(GHKMessage::CopyLastAudio).get(0) {
-            elems.push((
-                "Copy Last Audio",
-                value(cla_key).size(10).style(text::secondary).into(),
-            ));
+
+        for (label, msg) in [
+            ("Start/Stop Record", GHKMessage::Record),
+            ("Copy Last Record", GHKMessage::CopyLastRecord),
+            ("Copy Last Screenshot", GHKMessage::CopyLastScreenshot),
+            ("Copy Last Audio", GHKMessage::CopyLastAudio),
+        ] {
+            if let Some(key) = GHK.get_key(msg).get(0) {
+                elems.push((label, value(key).size(10).style(text::secondary).into()));
+            }
         }
 
         // Convert into table-like layout
@@ -241,6 +239,7 @@ impl VNRecord {
         let ghk = Subscription::run(|| {
             GHK.stream().map(|msg| match msg {
                 GHKMessage::Record => Message::ToggleRecord,
+                GHKMessage::CopyLastRecord => Message::CopyLastRecord,
                 GHKMessage::CopyLastScreenshot => Message::CopyLastScreenshot,
                 GHKMessage::CopyLastAudio => Message::CopyLastAudio,
             })
@@ -282,6 +281,10 @@ impl VNRecord {
                     self.last_recorded = Some(data);
                 }
                 println!("Stop recording");
+                if let Some(lr) = &self.last_recorded {
+                    clipboard::write_file_uris(&[&lr.screenshot_path, &lr.audio_path]);
+                    println!("Last record copied to clipboard");
+                }
             }
             Message::ToggleRecord => {
                 let Some(selected_process) = self.selected_process.clone() else {
@@ -298,15 +301,21 @@ impl VNRecord {
                     rs.elasped = now.duration_since(rs.start_time)
                 }
             }
+            Message::CopyLastRecord => {
+                if let Some(lr) = &self.last_recorded {
+                    clipboard::write_file_uris(&[&lr.screenshot_path, &lr.audio_path]);
+                    println!("Last record copied to clipboard");
+                }
+            }
             Message::CopyLastScreenshot => {
                 if let Some(lr) = &self.last_recorded {
-                    clipboard::write_image(&lr.screenshot_path);
+                    clipboard::write_file_uris(&[&lr.screenshot_path]);
                     println!("Last screenshot copied to clipboard");
                 }
             }
             Message::CopyLastAudio => {
                 if let Some(lr) = &self.last_recorded {
-                    clipboard::write_file_uri(&lr.audio_path);
+                    clipboard::write_file_uris(&[&lr.audio_path]);
                     println!("Last audio copied to clipboard");
                 }
             }

@@ -1,9 +1,11 @@
 use std::{
-    io::Write,
     path::Path,
-    process::{Command, Stdio},
+    process::{Command},
 };
 
+use duct::cmd;
+
+#[deprecated]
 pub fn write_image(path: &Path) {
     let res = Command::new("xclip")
         .arg("-selection")
@@ -20,24 +22,23 @@ pub fn write_image(path: &Path) {
     }
 }
 
-pub fn write_file_uri(path: &Path) {
-    let uri = format!("file://{}", path.canonicalize().unwrap().to_string_lossy());
-    let mut cmd = Command::new("xclip")
-        .arg("-selection")
-        .arg("clipboard")
-        .arg("-t")
-        .arg("text/uri-list")
-        .stdin(Stdio::piped())
-        .spawn()
+pub fn write_file_uris(paths: &[impl AsRef<Path>]) {
+    let uri = paths
+        .iter()
+        .map(|p| {
+            format!(
+                "file://{}",
+                p.as_ref().canonicalize().unwrap().to_string_lossy()
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    let res = cmd("xclip", ["-selection", "clipboard", "-t", "text/uri-list"])
+        .stdin_bytes(uri.as_bytes())
+        .run()
         .unwrap();
-    cmd.stdin
-        .as_mut()
-        .unwrap()
-        .write_all(uri.as_bytes())
-        .unwrap();
-    let res = cmd.wait().unwrap();
 
-    if !res.success() {
-        eprintln!("Failed to write audio to clipboard");
+    if !res.status.success() {
+        eprintln!("Failed to write file uris to clipboard");
     }
 }
