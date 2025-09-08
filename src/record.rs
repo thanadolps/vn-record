@@ -1,9 +1,6 @@
 use duct::{Handle, cmd, unix::HandleExt};
 use thiserror::Error;
-use xcap::{
-    XCapError, XCapResult,
-    image::{ImageError, RgbaImage},
-};
+use xcap::{XCapError, image::ImageError};
 
 use crate::process::Process;
 use std::{
@@ -154,32 +151,6 @@ fn audio_duration(audio_path: &Path) -> Duration {
         }
     }
 }
-
-// fn default_audio_sink() -> Result<u32, RecordError> {
-//     // Get audio pipewire info
-//     let res = Command::new("wpctl").arg("status").output()?;
-//     if !res.status.success() {
-//         eprintln!("wpctl status failed: {:?}", res);
-//     }
-
-//     // Extract the default sink information line
-//     let default_sink_info = std::str::from_utf8(&res.stdout)
-//         .unwrap()
-//         .lines()
-//         .find_map(|line| line.trim().trim_start_matches('│').trim().strip_prefix('*'))
-//         .expect("active sink should exists")
-//         .trim();
-
-//     // Extract the ID
-//     let last_digit_idx = default_sink_info
-//         .find(|c: char| !c.is_ascii_digit())
-//         .unwrap_or(default_sink_info.len());
-//     let default_sink_id = default_sink_info[..last_digit_idx]
-//         .parse::<u32>()
-//         .expect("sink ID should be a number");
-
-//     Ok(default_sink_id)
-// }
 
 fn start_audio_record(audio_path: &Path, target_sink: Option<&str>) -> Result<Handle, RecordError> {
     // based on https://github.com/JayXT/RecordAudioOutput/blob/main/record_audio_output_pw

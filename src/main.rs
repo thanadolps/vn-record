@@ -9,15 +9,10 @@ use global_hotkey::hotkey::{Code, HotKey, Modifiers};
 use hotkey::{GHKMessage, GHKService};
 use iced::{
     Alignment::{Center, End, Start},
-    Element, Font,
-    Length::Fill,
-    Pixels, Subscription, Task, Theme,
+    Element, Font, Subscription, Theme,
     font::{self, Weight},
-    futures::{SinkExt, Stream, StreamExt},
-    keyboard, stream, theme,
-    widget::{
-        Column, Container, Row, button, center, column, container, image, pick_list, text, value,
-    },
+    futures::StreamExt,
+    widget::{Column, Container, Row, button, center, image, pick_list, text, value},
 };
 use process::{Process, processes};
 use record::{RecordConfig, RecordedData, Recorder};
@@ -94,7 +89,7 @@ impl Default for VNRecord {
 }
 
 impl VNRecord {
-    pub fn view(&self) -> Container<Message> {
+    pub fn view(&self) -> Container<'_, Message> {
         let header = Column::new()
             .push(text("VN Record").size(40))
             .push(self.process_bar());
@@ -109,7 +104,7 @@ impl VNRecord {
         .padding(20)
     }
 
-    fn process_bar(&self) -> Row<Message> {
+    fn process_bar(&self) -> Row<'_, Message> {
         let process_selector = || {
             Row::new()
                 .push(
@@ -137,20 +132,22 @@ impl VNRecord {
                 .push(text)
                 .push(
                     button("X")
-                        .on_press_maybe((!self.is_recording()).then(|| Message::ProcessDeselected))
+                        .on_press_maybe(
+                            (!self.is_recording()).then_some(Message::ProcessDeselected),
+                        )
                         .style(button::secondary),
                 )
                 .spacing(8)
         };
 
         if let Some(process) = &self.selected_process {
-            process_display(process).into()
+            process_display(process)
         } else {
-            process_selector().into()
+            process_selector()
         }
     }
 
-    fn main_view(&self, selected_process: &process::Process) -> Element<Message> {
+    fn main_view(&self, selected_process: &process::Process) -> Element<'_, Message> {
         fn duration_str(duration: Duration) -> String {
             let minutes = duration.as_secs() / 60;
             let seconds = duration.as_secs() % 60;
@@ -188,7 +185,7 @@ impl VNRecord {
         c.into()
     }
 
-    fn setting_view(&self) -> Element<Message> {
+    fn setting_view(&self) -> Element<'_, Message> {
         let mut elems: Vec<(&str, Element<Message>)> = vec![(
             "Output Folder",
             button(
@@ -208,7 +205,7 @@ impl VNRecord {
             ("Copy Last Screenshot", GHKMessage::CopyLastScreenshot),
             ("Copy Last Audio", GHKMessage::CopyLastAudio),
         ] {
-            if let Some(key) = GHK.get_key(msg).get(0) {
+            if let Some(key) = GHK.get_key(msg).first() {
                 elems.push((label, value(key).size(10).style(text::secondary).into()));
             }
         }
@@ -219,9 +216,7 @@ impl VNRecord {
             Column::from_iter(labels.into_iter().map(|label| text(label).size(10).into()))
                 .spacing(4)
                 .align_x(Start);
-        let contents_col = Column::from_iter(contents.into_iter())
-            .spacing(4)
-            .align_x(End);
+        let contents_col = Column::from_iter(contents).spacing(4).align_x(End);
         Row::new()
             .spacing(20)
             .push(labels_col)

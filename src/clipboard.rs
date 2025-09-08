@@ -1,7 +1,4 @@
-use std::{
-    path::Path,
-    process::{Command},
-};
+use std::{path::Path, process::Command};
 
 use duct::cmd;
 
