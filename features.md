@@ -2,3 +2,4 @@
   - Toast notification using [iced_toasts](https://docs.rs/iced_toasts/latest/iced_toasts/)
   - Sound
   - System notification?
+- [ ] Smarter trimming (such as background noise/music)
