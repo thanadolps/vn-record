@@ -6,9 +6,15 @@ This tool is likely specific to my system (Pop!\_OS) and not gurantee to work on
 
 ## Features
 
+### Main
+
 - Record audio and screenshots of a specific process and save them in a directory
 - Copy both the audio and screenshots to the clipboard
 - Global hotkey control for most operations (eg. record, copy last record, copy last screenshot, copy last audio)
+
+### Extra
+
+- GUI for ease of use
 - Automatically trim silence from the beginning and end of the audio
 
 ## Motivation
