@@ -2,6 +2,7 @@ use std::{collections::HashMap, time::Duration};
 
 use global_hotkey::{GlobalHotKeyEvent, GlobalHotKeyManager, HotKeyState, hotkey::HotKey};
 use iced::{
+    futures::channel::mpsc,
     futures::{SinkExt, Stream, StreamExt},
     stream,
 };
@@ -55,12 +56,15 @@ impl GHKService {
 
 fn ghk_stream() -> impl Stream<Item = GlobalHotKeyEvent> {
     let receiver = GlobalHotKeyEvent::receiver();
-    stream::channel(16, move |mut sender| async move {
-        loop {
-            if let Ok(event) = receiver.try_recv() {
-                sender.send(event).await.unwrap();
+    stream::channel(
+        16,
+        move |mut sender: mpsc::Sender<GlobalHotKeyEvent>| async move {
+            loop {
+                if let Ok(event) = receiver.try_recv() {
+                    sender.send(event).await.unwrap();
+                }
+                tokio::time::sleep(Duration::from_millis(50)).await;
             }
-            tokio::time::sleep(Duration::from_millis(50)).await;
-        }
-    })
+        },
+    )
 }

@@ -97,7 +97,7 @@ impl VNRecord {
         center(
             Column::new()
                 .push(header)
-                .push_maybe(self.selected_process.as_ref().map(|p| self.main_view(p)))
+                .push(self.selected_process.as_ref().map(|p| self.main_view(p)))
                 .push(self.setting_view())
                 .spacing(40),
         )
@@ -342,8 +342,8 @@ fn default_output_dir() -> PathBuf {
 }
 
 fn main() -> iced::Result {
-    iced::application("VN Record", VNRecord::update, VNRecord::view)
+    iced::application(VNRecord::default, VNRecord::update, VNRecord::view)
         .subscription(VNRecord::subscription)
-        .theme(|_| Theme::Dark)
+        .theme(|_: &VNRecord| Theme::Dark)
         .run()
 }

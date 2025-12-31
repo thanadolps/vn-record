@@ -6,13 +6,13 @@ edition = "2024"
 
 [dependencies]
 dirs = "6.0.0"
-duct = "1.1.0"
+duct = "1.1.1"
 global-hotkey = "0.7.0"
-iced = { version = "0.13.1", features = ["image", "tokio"] }
-open = "5.3.2"
-thiserror = "2.0.16"
-tokio = { version = "1.47.1", default-features = false, features = ["time"] }
-xcap = "0.7.0"
+iced = { version = "0.14.0", features = ["image", "tokio", "hot"] }
+open = "5.3.3"
+thiserror = "2.0.17"
+tokio = { version = "1.48.0", default-features = false, features = ["time"] }
+xcap = "0.8.0"
 
 [profile.dev]
 debug = 0
